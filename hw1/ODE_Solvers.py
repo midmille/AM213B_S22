@@ -9,7 +9,7 @@ This file contains ODE schemes.
 import numpy as np
 
 
-def RK3(N, dt, t, dydt, y0)
+def RK3(N, dt, t, dydt, y0): 
     """
     This function implements an explicit 3 stage Runge Kutta method for the solution
     of the given ODE. This is used for the solution to Homework 1, Question 1, Part B, Section 2
@@ -54,7 +54,7 @@ def RK3(N, dt, t, dydt, y0)
         ## [The three stages of RK3]
         k1 = dydt(y[k,:], t[k])
         k2 = dydt(y[k,:] + dt*0.5*k1, t[k] + 0.5*dt)
-        k3 = dydt(y[k,:] + dt*(-1k1 + 2k2), t[k] + dt)
+        k3 = dydt(y[k,:] + dt*(-1*k1 + 2*k2), t[k] + dt)
 
         ## [Solving for the next step in y.]
         y[k+1, :] = y[k,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
