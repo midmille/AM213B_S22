@@ -143,42 +143,55 @@ if __name__ == '__main__':
     ## [The total time.]
     T = 10
 
-    ## [The dt.]
-    dt = 0.0005
+    ## [The different dt values to loop over.]
+    dts = [ 0.5, 0.25, 0.05, 0.005, 0.0005, 0.00005]
 
-    ## [The t grid.]
-    t = np.arange(0, T, dt)
-    ## [The number of grip points.]
-    N = len(t)
+    ## [Initializing the figure.]
+    fig, axes = plt.subplots(nrows=2, ncols =3)
+    axs = axes.flatten()
 
-    ## [The initial condition.]
-    y0 = np.array([-3, 1])
+    ## [Loop over the dts.]
+    for k, dt in enumerate(dts):
 
-    ## [Run the analytical solution.]
-    y = analytical_y(t)
+        ## [The t grid.]
+        t = np.arange(0, T, dt)
+        ## [The number of grip points.]
+        N = len(t)
+    
+        ## [The initial condition.]
+        y0 = np.array([-3, 1])
+    
+        ## [Run the analytical solution.]
+        y = analytical_y(t)
+    
+        ## [Run the RK3 solution.]
+        y_rk3 = RK3(N,dt, t, dydt_1b2, y0)
+    
+        ## [Run the Adam Moulton method.]
+        y_am2 = AM2_1b2_spec(dydt_1b2, A, N, dt, t, y0)
 
-    ## [Run the RK3 solution.]
-    y_rk3 = RK3(N,dt, t, dydt_1b2, y0)
+        err_rk3 = np.zeros(N)
+        err_am2 = np.zeros(N)
+        ## [Calculate the error vector.]
+        ## [First loop over t grid.]
+        for i in range(N): 
+            ## [The rk3 error.]
+            err_rk3[i] = np.linalg.norm(y[i, :] - y_rk3[i,:], ord=2)
+            ## [The am2 error]
+            err_am2[i] = np.linalg.norm(y[i, :] - y_am2[i,:], ord=2)
 
-    ## [Run the Adam Moulton method.]
-    y_am2 = AM2_1b2_spec(dydt_1b2, A, N, dt, t, y0)
-
-    ## [Plotting.]
-    fig, ax = plt.subplots()
-    ## [The analytical sol.]
-    ax.plot(t, y, '-o', markersize = 1, label='Analytical Solution')
-    ## [The rk3 sol.]
-    ax.plot(t, y_rk3, '-o', markersize = 1, label='RK3 Solution')
-    ## [The AM2 solution.]
-    ax.plot(t, y_am2, '-o', markersize = 1, label='AM2 Solution')
-
-    ax.set_ylabel('Y')
-    ax.set_xlabel('t')
-    ax.set_title(f'dt = {dt}')
-    ax.legend()
-    ax.grid()
-
-    fig.show()
+        ## [The rk3 err]
+        axs[k].plot(t, err_rk3, label=f'RK3 Error')
+        ## [The AM2 solution.]
+        axs[k].plot(t, err_am2, label=f'AM2 Error')
+    
+        axs[k].set_ylabel(f'Error')
+        axs[k].set_xlabel('t')
+        axs[k].set_title(f'Two Norm Error in Time, dt = {dt}')
+        axs[k].legend(title='Method')
+        axs[k].grid()
+    
+        fig.show()
 
     
     
