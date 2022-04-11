@@ -78,7 +78,7 @@ def dydt_1b2(y, t):
     return dydt
     
 
-def AM2_1b2_spec(A, N, dt, t, y0): 
+def AM2_1b2_spec(dydt, A, N, dt, t, y0): 
     """
     This implements the Implicit Adams Moulton derived for problem q1b2. 
 
@@ -108,17 +108,27 @@ def AM2_1b2_spec(A, N, dt, t, y0):
     ## [Set the initial value condition.]
     y[0,:] = y0 
 
+    ## [A shaped Idenity matrix.]
+    I = np.array([[1,0], 
+                  [0,1]])
     ## [Loop t.]
     for k in range(N-1): 
         
-
         ## [Boundary condition is that u_k-1 = u_k at initial value.]
         if k == 0: 
-            y[k+1, :] = np.linalg.solve(1-(dt/12)*5*A, y[k,:] + (dt/12)*(8*np.dot(A, y[k,:]) - np.dot(A, y[k, :])))
+            ## [Using an order 3 explicit to get y[1, :]. 
+            ## [The three stages of RK3]
+            k1 = dydt(y[k,:], t[k])
+            k2 = dydt(y[k,:] + dt*0.5*k1, t[k] + 0.5*dt)
+            k3 = dydt(y[k,:] + dt*(-1*k1 + 2*k2), t[k] + dt)
+
+            ## [Solving for the next step in y.]
+            y[k+1, :] = y[k,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
         else:
-        ## [This is Adam Moulton solution is derived in the hw pdf.]
-        ## [y_k+1 = (1-dt/12 *5*a)^-1 (u_k + dt/12(8*A*u_k - A*u_k-1)) ] 
-            y[k+1, :] = np.linalg.solve(1-(dt/12)*5*A, y[k,:] + (dt/12)*(8*np.dot(A, y[k,:]) - np.dot(A, y[k-1, :])))
+            ## [This is Adam Moulton solution is derived in the hw pdf.]
+            ## [y_k+1 = (1-dt/12 *5*a)^-1 (u_k + dt/12(8*A*u_k - A*u_k-1)) ] 
+
+            y[k+1, :] = np.linalg.solve(I-(dt/12)*5*A, y[k,:] + (dt/12)*(8*np.dot(A, y[k,:]) - np.dot(A, y[k-1, :])))
     
     return y
 
@@ -151,7 +161,7 @@ if __name__ == '__main__':
     y_rk3 = RK3(N,dt, t, dydt_1b2, y0)
 
     ## [Run the Adam Moulton method.]
-    y_am2 = AM2_1b2_spec(A, N, dt, t, y0)
+    y_am2 = AM2_1b2_spec(dydt_1b2, A, N, dt, t, y0)
 
     ## [Plotting.]
     fig, ax = plt.subplots()
