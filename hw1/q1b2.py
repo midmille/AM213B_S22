@@ -193,6 +193,18 @@ if __name__ == '__main__':
     
         fig.show()
 
+    ## Plot dydt
+    dydt_k = dydt_1b2(np.transpose(y), t)
+    fig, ax = plt.subplots()
+
+    ax.plot(t, dydt_k[0,:], label = r'$y_1$')
+    ax.plot(t, dydt_k[1,:], label = r'$y_2$')
+    ax.set_ylabel(r'$\frac{dy(t_k)}{dt}$')
+    ax.set_xlabel('t')
+    ax.set_title(r'Plot of $\frac{dy(t_k)}{dt}$ Using $y(t_k)$ Analytical')
+    ax.grid()
+    ax.legend()
+    fig.show()
     
     
     

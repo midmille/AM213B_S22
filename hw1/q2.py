@@ -73,7 +73,7 @@ def Midpoint_Implicit_Q2_Spec(N, dt, t, dydt, y0, tol=10e-5, maxit=30):
         jg = [[0, 0, 1/m, 0], 
                [-(2*y[3]) / (m*(l0+y[0])**3), 0, 0, 1/(m*(l0+y[0])**2)], 
                [-(3*y[3]**2)/(m*(l0+y[0])**4) - kap, -m*g*np.sin(y[1]), 0, (2*y[3])/(m*(l0 + y[0])**3)], 
-               [-m*g*np.sin(y[1]), -m*g*np.cos(y[1]), 0, 0]]
+               [-m*g*np.sin(y[1]), -m*g*(y[0]+l0)*np.cos(y[1]), 0, 0]]
 
         ## [This includes the dt and the 0.5 from chain rule.]
         jg = 0.5*dt*np.array(jg)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     T = 60
 
     ## [Value of dt.]
-    dt = 10e-5
+    dt = 4e-2
     
     ## [The t grid.]
     t = np.arange(0, T, dt)
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     H_rk2 = Hamiltonian(y_rk2) 
 
     ## [Solving for the implicit midpoint solution.]
-    y_immd = Midpoint_Implicit_Q2_Spec(N, dt, t, dydt, y0, tol=10e-7, maxit=30)
+    y_immd = Midpoint_Implicit_Q2_Spec(N, dt, t, dydt, y0, tol=10e-12, maxit=30)
     H_immd = Hamiltonian(y_immd)
 
     ## [Plotting the x and theta for all methods.]
