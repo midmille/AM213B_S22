@@ -8,6 +8,7 @@ About: This file is for the implementation of Homework 3 Question 3 for AM213B
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle 
 
 def CFD_1(N, dx, u): 
     """
@@ -46,6 +47,28 @@ def CFD_1(N, dx, u):
     return dudx
 
 
+def CFD1_mat(N, dx): 
+    """
+    This formulates the first derivative CFD matrix for periodic BCs. 
+    """
+
+    ## [Empty A matrix.]
+    A = np.zeros((N,N))
+    ## [Loop over the N]
+    for k in range(N): 
+        if k == 0: 
+            A[k,N-1] = -1
+            A[k,k+1] = 1
+        elif k == N-1: 
+            A[k,k-1] = -1
+            A[k, 0] = 1
+        else: 
+            A[k,k-1] = -1
+            A[k,k+1] = 1
+
+    return (1/(2*dx)) * A
+        
+
 def CFD_2(N, dx, u): 
     """
     Implements second order central finite difference for the second derivative of provided
@@ -81,6 +104,31 @@ def CFD_2(N, dx, u):
             d2udx2[k] = (u[k-1] - 2*u[k] + u[k+1])/(dx**2)
 
     return d2udx2
+
+
+def CFD2_mat(N, dx): 
+    """
+    This formulates the second derivative CFD matrix for periodic BCs. 
+    """
+
+    ## [Empty A matrix.]
+    A = np.zeros((N,N))
+    ## [Loop over the N]
+    for k in range(N): 
+        if k == 0: 
+            A[k,N-1] = 1
+            A[k,k] = -2
+            A[k,k+1] = 1
+        elif k == N-1: 
+            A[k,k-1] = 1
+            A[k,k] = -2
+            A[k, 0] = 1
+        else: 
+            A[k,k-1] = 1
+            A[k,k] = -2 
+            A[k,k+1] = 1
+
+    return (1/(dx**2)) * A
 
 
 def CFD_4(N, dx, u): 
@@ -121,6 +169,49 @@ def CFD_4(N, dx, u):
     return d4udx4
 
 
+def CFD4_mat(N, dx): 
+    """
+    This formulates the second derivative CFD matrix for periodic BCs. 
+    """
+
+    ## [Empty A matrix.]
+    A = np.zeros((N,N))
+    ## [Loop over the N]
+    for k in range(N): 
+        if k == 0: 
+            A[k, N-2] = 1
+            A[k,N-1] = -4
+            A[k,k] = 6
+            A[k,k+1] = -4
+            A[k,k+2] = 1
+        elif k == 1: 
+            A[k,N-1] = 1
+            A[k,k-1] = -4
+            A[k,k] = 6
+            A[k,k+1] = -4
+            A[k,k+2] = 1
+        elif k == N-1:
+            A[k, k-2] = 1
+            A[k,k-1] = -4
+            A[k,k] = 6
+            A[k,0] = -4
+            A[k,1] = 1
+        elif k==N-2: 
+            A[k, k-2] = 1
+            A[k,k-1] = -4
+            A[k,k] = 6
+            A[k,k+1] = -4
+            A[k,0] = 1
+        else: 
+            A[k, k-2] = 1
+            A[k,k-1] = -4
+            A[k,k] = 6
+            A[k,k+1] = -4
+            A[k,k+2] = 1
+
+    return (1/(dx**4)) * A
+
+
 def Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0): 
     """
     This fucntion solves for the solution to the Kuramoto-Sivashinsky initial-boundary value problem provided
@@ -158,9 +249,13 @@ def Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0):
         The function representing the rhs of the time stepping problem. This is the finite difference 
         operators on the rhs.
         """
-        return -u*CFD_1(Nx, dx, u) - CFD_2(Nx, dx, u) - CFD_4(Nx, dx, u)
+#        return -u*CFD_1(Nx, dx, u) - CFD_2(Nx, dx, u) - CFD_4(Nx, dx, u)
+        return -u*(CFD1@u) - (CFD2@u) - (CFD4@u)
 
 
+    CFD1 = CFD1_mat(Nx, dx)
+    CFD2 = CFD2_mat(Nx, dx)
+    CFD4 = CFD4_mat(Nx, dx)
 
     ## [The empty U array.]
     U = np.zeros((Nt, Nx))
@@ -169,10 +264,13 @@ def Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0):
     U[0,:] = ut0(x)
 
     ## [Perform RK 3 to Init the U[1,:] vector before AB multistep method.]
+#    k1 = F(Nx, dx, U[0,:])
+#    k2 = F(Nx, dx, U[0,:] + dt*0.5*k1)
+#    k3 = F(Nx, dx, U[0,:] + dt*(-1*k1 + 2*k2))
+#    U[1,:] = U[0,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
     k1 = F(Nx, dx, U[0,:])
-    k2 = F(Nx, dx, U[0,:] + dt*0.5*k1)
-    k3 = F(Nx, dx, U[0,:] + dt*(-1*k1 + 2*k2))
-    U[1,:] = U[0,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
+    k2 = F(Nx, dx, dt*k1)
+    U[1,:] = U[0,:] + (dt/2)*(k1 + k2)
 
     ## [Loop over the time.]
     for k in range(1,Nt-1): 
@@ -192,7 +290,21 @@ def Plot_Usol(x, t, U):
     ## [Plotting.]
     fig, ax = plt.subplots(subplot_kw={"projection":"3d"})
 
-    im = ax.plot_surface(tt, xx, U)
+    im = ax.plot_surface(tt, xx, U, cmap ='viridis')
+    ax.set_ylabel('x')
+    ax.set_xlabel('t')
+    ax.set_zlabel('U(x, t)')
+
+    fig.show()
+
+    ## [Plot Color map solution.]
+    fig, ax = plt.subplots()
+
+    im = ax.pcolormesh(tt, xx, U, cmap='nipy_spectral')
+    ax.set_ylabel('x')
+    ax.set_xlabel('t')
+
+    plt.colorbar(im, ax=ax)
 
     fig.show()
 
@@ -202,22 +314,25 @@ def Plot_Usol(x, t, U):
 if __name__ == '__main__':
     
     ## [Problem parameters.]
-    Nx = 400
-    Nt = 300
+    Nx = 200
+    dx = 60/(Nx)
 
     ## [The x grid.]
-    x = np.linspace(-30, 30, Nx)
-    dx = x[1] - x[0] 
-
+    x = np.arange(-30, 30 ,dx)
+    Nx = len(x)
     ## [The time grid.]
-    t = np.linspace(0, 30, Nt)
-    dt = t[1] - t[0]
+    dt = 5e-4
+    t = np.arange(0, 30, dt)
+    Nt = len(t)
 
     ## [The initial condition function.]
     ut0 = lambda x: np.exp(-x**2)
 
     ## [Solving for U.]
     U = Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0)
+
+    ## [Save the result.]
+    pickle.dump(U, open('q3_Usol.p', 'wb'))
 
     ## [Plotting the solution.]
     Plot_Usol(x, t, U)
