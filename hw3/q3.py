@@ -249,8 +249,8 @@ def Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0):
         The function representing the rhs of the time stepping problem. This is the finite difference 
         operators on the rhs.
         """
-#        return -u*CFD_1(Nx, dx, u) - CFD_2(Nx, dx, u) - CFD_4(Nx, dx, u)
-        return -u*(CFD1@u) - (CFD2@u) - (CFD4@u)
+        return -u*CFD_1(Nx, dx, u) - CFD_2(Nx, dx, u) - CFD_4(Nx, dx, u)
+#        return -u*(CFD1@u) - (CFD2@u) - (CFD4@u)
 
 
     CFD1 = CFD1_mat(Nx, dx)
@@ -264,13 +264,13 @@ def Solve_KS_IBP(Nx, Nt, dx, dt, x, t, ut0):
     U[0,:] = ut0(x)
 
     ## [Perform RK 3 to Init the U[1,:] vector before AB multistep method.]
-#    k1 = F(Nx, dx, U[0,:])
-#    k2 = F(Nx, dx, U[0,:] + dt*0.5*k1)
-#    k3 = F(Nx, dx, U[0,:] + dt*(-1*k1 + 2*k2))
-#    U[1,:] = U[0,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
     k1 = F(Nx, dx, U[0,:])
-    k2 = F(Nx, dx, dt*k1)
-    U[1,:] = U[0,:] + (dt/2)*(k1 + k2)
+    k2 = F(Nx, dx, U[0,:] + dt*0.5*k1)
+    k3 = F(Nx, dx, U[0,:] + dt*(-1*k1 + 2*k2))
+    U[1,:] = U[0,:] + dt*((1/6)*k1 + (2/3)*k2 + (1/6)*k3)
+#    k1 = F(Nx, dx, U[0,:])
+#    k2 = F(Nx, dx, dt*k1)
+#    U[1,:] = U[0,:] + (dt/2)*(k1 + k2)
 
     ## [Loop over the time.]
     for k in range(1,Nt-1): 
@@ -314,7 +314,7 @@ def Plot_Usol(x, t, U):
 if __name__ == '__main__':
     
     ## [Problem parameters.]
-    Nx = 200
+    Nx = 100
     dx = 60/(Nx)
 
     ## [The x grid.]
@@ -322,7 +322,7 @@ if __name__ == '__main__':
     Nx = len(x)
     ## [The time grid.]
     dt = 5e-4
-    t = np.arange(0, 30, dt)
+    t = np.arange(0, 10, dt)
     Nt = len(t)
 
     ## [The initial condition function.]
