@@ -197,32 +197,54 @@ def Plot_Usol(x, t, U):
     return 
 
 if __name__ == "__main__": 
+
+    ## [The list of grid points for the error analysis.]
+    Ns= [10,20,40,60,80,100,110,120,130,140,150]
     
-    ## [Some problem parameters.]
-    ## [xgrid params.]
-    Nx = 100
-    x = np.linspace(-1, 1, Nx)
-    dx = x[0] - x[1]
-    ## [tgrid params.]
-    dt = 1e-4
-    t = np.arange(0.0, 2.0+dt, dt)
-    Nt = len(t)
-    ## [The temporal initial value.]
-    ut0 = lambda x: (3+x) + 5*(1-x**2)**2
-    ## [The spatial boundary conditions.]
-    ## [Lower bc at x = -1.]
-    ux01 = 2
-    ## [Upper bc at x =1.]
-    ux02 = 4
+    err = np.zeros(len(Ns))
 
-    ## [Solve for U using finite difference and crank nicoloson.]
-    Ufd = Solve_FD_Heat(Nx, Nt, dx, dt, x, t, ux01, ux02, ut0)
+    ## [Loop the Ns]
+    for k, Nx in enumerate(Ns):
+        ## [Some problem parameters.]
+        ## [xgrid params.]
+        x = np.linspace(-1, 1, Nx)
+        dx = x[0] - x[1]
+        ## [tgrid params.]
+        dt = 1e-4
+        t = np.arange(0.0, 2.0+dt, dt)
+        Nt = len(t)
+        ## [The temporal initial value.]
+        ut0 = lambda x: (3+x) + 5*(1-x**2)**2
+        ## [The spatial boundary conditions.]
+        ## [Lower bc at x = -1.]
+        ux01 = 2
+        ## [Upper bc at x =1.]
+        ux02 = 4
+    
+        ## [Solve for U using finite difference and crank nicoloson.]
+        Ufd = Solve_FD_Heat(Nx, Nt, dx, dt, x, t, ux01, ux02, ut0)
+    
+        ## [Solve for the Analytical solution to U.]
+        Uan = Solve_Heat_Analytical(Nx, Nt, x, t, Ns=100)
 
-    ## [Solve for the Analytical solution to U.]
-    Uan = Solve_Heat_Analytical(Nx, Nt, x, t, Ns=100)
+        diff = np.absolute(Ufd - Uan)
 
+        err[k] = np.max(diff[-1, :])
+
+    fig, ax = plt.subplots()
+
+    ax.semilogy(Ns, err)
+    ax.set_xlabel('Nx')
+    ax.set_ylabel('e(t)')
+    ax.grid()
+    ax.set_title('Error of the Finite Difference Solution')
+
+    fig.show()
+
+
+    
     ## [Plot the solution.]
-    Plot_Usol(x, t, Ufd)
-    Plot_Usol(x, t, Uan)
-
-
+#    Plot_Usol(x, t, Ufd)
+#    Plot_Usol(x, t, Uan)
+    
+    
