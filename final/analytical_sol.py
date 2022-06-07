@@ -85,24 +85,57 @@ def Betak(Nk, r2, r1, plot=False):
     return betak
 
 
-def Uk(r, t, betak, r2, r1):
+def Uk(r, t, betak, r2, r1, U0, nu):
     """
-    """
+    This function computes U at r, t, and scalar k.
+
+    i.e. this inside of the summnation for equaiotn (3) in the final exam.
     
+    Parameters
+    ----------
+    r: 2-D array, [Nt, Nx]
+        The mesh grid for radius.
+    t: 2-D array, [Nt, Nx]
+        The mesh grid for time.
+    r2, r1: Integers
+        The bounnds of space.
+    U0: callable initial condition function of r
+    nu: Float
+        The scalar constan nu for the problem.
 
-
-    return
-
-def U(r, t, Nk, r2, r1): 
+    Returns
+    -------
+    Uk: 2-D Array, [Nt, NX]
+        The solution for U at k.
     """
+
+    ## [Calculate the definite integral of rprime.]
+    integral = integrate.quad(lambda x: x*Rk_hat(x, betak, r2, r1)*U0(x), r1, r2)[0]
+    
+    ## [The rest of the rhs of equation (3) in the final exam.]
+    rhs = np.exp(- betak**2 * nu * t) * Rk_hat(r, betak, r2, r1) * integral
+
+    return rhs
+
+def U_ana(r, t, Nk, r2, r1, U0, nu): 
     """
+    The anlytical solution to equation (1) in the final exam, i.e., equation (3).
+    """
+    ## [The ks.]
+    ks = np.arange(1, Nk+1, 1)
 
     ## [Solve for the betaks.]
     betaks = Betak(Nk, r2, r1)
 
-    
+    ## [init the rhs of the sum.]
+    rhs = 0
 
-    return 
+    ## [Loop over and implement the sum.]
+    for k in ks: 
+        
+        rhs = rhs + Uk(r, t, betaks[k-1], r2, r1, U0, nu)
+        
+    return rhs 
 
 
 if __name__ == '__main__': 
