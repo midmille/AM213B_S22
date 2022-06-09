@@ -10,6 +10,8 @@ import analytical_sol
 ## [External mods.]
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
+
 
 def Create_Space_Grid(r2, r1, Nrp2): 
     """
@@ -80,7 +82,7 @@ def Create_M(N, nu, r, dr):
     return M
 
 
-def Spectral_Radius_M(r2, r1, nu):
+def Spectral_Radius_M(r2, r1, nu, plot=False):
     """
     This implements the spectral radius study for the rhs matrix M from above.
 
@@ -118,27 +120,50 @@ def Spectral_Radius_M(r2, r1, nu):
         ## [The spectral radius is the maximum of the absolute value of the eigenvalues.]
         specr_arr[j] = np.max(np.absolute(eigvals))
 
-    ## [This is the plotting of the results.]
+    if plot:
+        ## [This is the plotting of the results.]
+        fig, ax = plt.subplots()
+    
+        ax.plot(n_arr, specr_arr, 'k')
+        ax.plot(n_arr, specr_arr, 'bo', fillstyle='none', markersize=5)
+    
+        fontsize = 12
+        ax.set_ylabel(r'Spectral Radius $\rho (\mathbf{M})$', fontsize = fontsize)
+        ax.set_xlabel(r'Number of Inner Nodes [N]', fontsize = fontsize)
+        ax.set_title('Spectral Radius of RHS FD Matrix vs Number of Inner Nodes')
+        ax.grid()
+    
+        fig.show()
+
+    return n_arr, specr_arr
+
+
+def Absolute_Stability(r2, r1, nu): 
+    """
+    This is the solution to question 2 part c of the final exam.
+
+    It also plots the log(dt_crit) against log(n).
+    """
+
+    ## [Run the spectral radius study and get, n_arr and specr_arr.]
+    n_arr, specr_arr = Spectral_Radius_M(r2, r1, nu, plot=False)
+
+    ## [The critical time step for absolute stability.]
+    dt_crit = (6/11) * (1/specr_arr)
+
+    ## [Plot the results as a log log plot.] 
     fig, ax = plt.subplots()
 
-    ax.plot(n_arr, specr_arr, 'k')
-    ax.plot(n_arr, specr_arr, 'bo', fillstyle='none', markersize=5)
+    ax.loglog(n_arr, dt_crit, 'k')
+    ax.loglog(n_arr, dt_crit, 'bo', fillstyle='none', markersize=5)
 
     fontsize = 12
-    ax.set_ylabel(r'Spectral Radius $\rho (\mathbf{M})$', fontsize = fontsize)
-    ax.set_xlabel(r'Number of Inner Nodes [N]', fontsize = fontsize)
-    ax.set_title('Spectral Radius of RHS FD Matrix vs Number of Inner Nodes')
+    ax.set_ylabel(r'log(Critical Time Step $\Delta t ^*$)', fontsize = fontsize)
+    ax.set_xlabel(r'log(Number of Inner Nodes [N])', fontsize = fontsize)
+    ax.set_title('Critical Time Step vs Number of Inner Nodes')
     ax.grid()
 
     fig.show()
-
-    return 
-
-
-def Absolute_Stability(): 
-    """
-
-    """
 
     return
 
@@ -196,7 +221,7 @@ def U_num(r, t, dr, dt, Nr, Nrp1, Nrp2, Nt, nu, U0):
     return U
 
 
-def Plot_Usol(rr, tt, U): 
+def Plot_Usol(rr, tt, U, title): 
     """
     This plots the resulting U solution as a surface plot
     """
@@ -208,6 +233,7 @@ def Plot_Usol(rr, tt, U):
     ax.set_ylabel('t')
     ax.set_xlabel('r')
     ax.set_zlabel('U(r, t)')
+    ax.set_title(title)
 
     fig.show()
 
@@ -217,12 +243,163 @@ def Plot_Usol(rr, tt, U):
     im = ax.pcolormesh(rr, tt, U, cmap='nipy_spectral')
     ax.set_ylabel('t')
     ax.set_xlabel('r')
+    ax.set_title(title)
 
     plt.colorbar(im, ax=ax)
 
     fig.show()
 
     return 
+
+
+def Compute_Error_Allt(Ua, Un): 
+    """
+    This computes the maximum absolute biad between the analytical and numerical solution for 
+    the IVBP on the final exam.
+
+    Ua is the analytical solution and Un is the numerical solution.
+    """
+
+    diff = np.absolute(Ua - Un)
+
+    ## [Taking the maximunm across each spatial axis.]
+    err = diff.max(axis=1)
+
+    return err
+
+
+def Error_Study(Nk, t, dt, Nt, r2, r1, nu, U0, load=True): 
+    """
+    This implements the erro study requested of the final exam Q2 Part d.
+    """
+    savefile= 'err_arr.p'
+
+    ## [The different Nrs to run the study for.]
+    Nr_arr = np.array([25, 50, 100, 150])
+
+
+    if load == True: 
+        err_arr = pickle.load(open(savefile, 'rb'))
+
+    else: 
+        ## [The resulting error at each time step for each different Nrs above.]
+        err_arr = np.zeros((Nt, len(Nr_arr)))
+    
+        ## [Loop over the Nr_arr.]
+        for j, Nr in enumerate(Nr_arr):
+            
+            Nrp1 = Nr + 1
+            Nrp2 = Nr + 2
+    
+            ## [Spatial grid for given Nr.]
+            r = Create_Space_Grid(r2, r1, Nrp2)
+            dr = r[1] - r[0]
+    
+            ## [The numerical solution for U.]
+            Un = U_num(r, t, dr, dt, Nr, Nrp1, Nrp2, Nt, nu, U0)
+            
+            ## [The meshgrdi for analytical and plotting.]
+            rr, tt = np.meshgrid(r,t)
+        
+            ## [The analytical solution for U.]
+            Ua = analytical_sol.U_ana(rr, tt, Nk, r2, r1, U0, nu)
+    
+            ## [The error at each time step.]
+            err_arr[:,j] = Compute_Error_Allt(Ua, Un)
+
+        ## [Save the result to pickle.]
+        pickle.dump(err_arr, open(savefile,'wb')) 
+    
+    ## [Plot the result.]
+    fig, ax = plt.subplots()
+    ## [Loop over the Nr_arr.]
+    for j, Nr in enumerate(Nr_arr):
+        ax.semilogy(t, err_arr[:,j], label= f'N = {Nr}')
+    
+    fontsize = 12
+    ax.set_ylabel(r'log($e_N(t)$)')
+    ax.set_xlabel(r't [s]')
+    ax.set_title('The Error for Different Spatial Resolutions in Time')
+    ax.legend()
+    ax.grid()
+
+    fig.show()
+
+    return
+
+
+def Error_Study_Finalt(Nk, t, dt, Nt, r2, r1, nu, U0, load=True):
+    """
+    This error study is done for with more Nr values and only looks at the final time error.
+
+    This is the solution to Q2 Part e on the final exam.
+    """
+
+    savefile= 'err_arr_final.p'
+
+    ## [This N is just the N=20 for the looping of ks for the study.]
+    N = 20
+
+    ## [The array of values for n.]
+    n_arr = np.zeros(N, dtype=int)
+
+    for j in range(N):
+        ## [Python is zero based indexing.]
+        k = 1+j
+    
+        ## [The actual value for the number of inner nodes for the solution.]
+        n = 10 + 10*(k-1)
+        n_arr[j] = n
+
+
+    if load == True: 
+        err_arr = pickle.load(open(savefile, 'rb'))
+
+    else: 
+
+        ## [The error array, the final e_max for each Nr.]
+        err_arr = np.zeros(N)
+
+        for j in range(N):
+            
+            Nr = n_arr[j]
+            
+            Nrp1 = Nr + 1
+            Nrp2 = Nr + 2
+    
+            ## [Spatial grid for given Nr.]
+            r = Create_Space_Grid(r2, r1, Nrp2)
+            dr = r[1] - r[0]
+    
+            ## [The numerical solution for U.]
+            Un = U_num(r, t, dr, dt, Nr, Nrp1, Nrp2, Nt, nu, U0)
+            
+            ## [The meshgrdi for analytical and plotting.]
+            rr, tt = np.meshgrid(r,t)
+        
+            ## [The analytical solution for U.]
+            Ua = analytical_sol.U_ana(rr, tt, Nk, r2, r1, U0, nu)
+
+            ## [The error is only calculated from the final time step.]
+            err_arr[j] = np.absolute(Ua[-1,:] - Un[-1,:]).max()
+
+            ## [Save the result.]
+            pickle.dump(err_arr, open(savefile, 'wb'))
+
+    ## [Plotting the result.]
+    fig, ax = plt.subplots()
+
+    ax.loglog(n_arr, err_arr, 'k')
+    ax.loglog(n_arr, err_arr, 'bo', fillstyle='none', markersize=5)
+
+    fontsize = 12
+    ax.set_ylabel(r'log($e_N(t=2)$)', fontsize = fontsize)
+    ax.set_xlabel(r'log(Number of Inner Nodes [N])', fontsize = fontsize)
+    ax.set_title('Error at Final Time Step vs Number of Inner Nodes')
+    ax.grid()
+
+    fig.show()
+
 
 
 if __name__ == '__main__':
@@ -246,12 +423,22 @@ if __name__ == '__main__':
     U0 = lambda x: 10*(x-1)*(4-x)**2 * np.exp(- x)
 
     ## [Q2 Part b {Spectral Radius Study}]
-    Spectral_Radius_M(r2, r1, nu)
+    Spectral_Radius_M(r2, r1, nu, plot=True)
+
+    ## [Q2 Part c {Critical Time Step Study}
+    Absolute_Stability(r2, r1, nu)
 
     ## [The time grid.]
     t =  np.arange(t1, t2, dt)
     Nt = len(t)
 
+    ## [Q2 Part d {Error Study in Time.}]
+#    Error_Study(Nk, t, dt, Nt, r2, r1, nu, U0, load=True)
+
+    ## [Q3 Part e {Error Study at Final Time.}]
+#    Error_Study_Finalt(Nk, t, dt, Nt, r2, r1, nu, U0, load=False)
+
+    ## [This is just for plotting a single solution.]
     ## [Create the spatial grid.]
     r = Create_Space_Grid(r2, r1, Nrp2)
     ## [Evenly spaced grid.]
@@ -265,6 +452,10 @@ if __name__ == '__main__':
 
     ## [The analytical solution for U.]
 #    Ua = analytical_sol.U_ana(rr, tt, Nk, r2, r1, U0, nu)
+
+#    e = Compute_Error_Allt(Ua, Un)
+
+
 
 
     
