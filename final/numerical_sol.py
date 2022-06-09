@@ -80,7 +80,7 @@ def Create_M(N, nu, r, dr):
     return M
 
 
-def Spectral_Radius_M():
+def Spectral_Radius_M(r2, r1, nu):
     """
     This implements the spectral radius study for the rhs matrix M from above.
 
@@ -92,12 +92,45 @@ def Spectral_Radius_M():
     ## [This N is just the N=20 for the looping of ks for the study.]
     N = 20
 
-    for k in range(1, N):
+    ## [The spectral radius array.]
+    specr_arr = np.zeros(N)
+    ## [The array of values for n.]
+    n_arr = np.zeros(N)
+
+    for j in range(N):
+        ## [Python is zero based indexing.]
+        k = 1+j
+
         ## [The actual value for the number of inner nodes for the solution.]
+        n = 10 + 10*(k-1)
+        n_arr[j] = n
 
+        ## [Get the spatial grid for this node size.]
+        r = Create_Space_Grid(r2, r1, n+2)
+        dr = r[1] - r[0]
 
+        ## [Get the M rhs matrix.]
+        M = Create_M(n, nu, r, dr)
 
+        ## [solve for the Eigen values.]
+        eigvals = np.linalg.eigvals(M)
 
+        ## [The spectral radius is the maximum of the absolute value of the eigenvalues.]
+        specr_arr[j] = np.max(np.absolute(eigvals))
+
+    ## [This is the plotting of the results.]
+    fig, ax = plt.subplots()
+
+    ax.plot(n_arr, specr_arr, 'k')
+    ax.plot(n_arr, specr_arr, 'bo', fillstyle='none', markersize=5)
+
+    fontsize = 12
+    ax.set_ylabel(r'Spectral Radius $\rho (\mathbf{M})$', fontsize = fontsize)
+    ax.set_xlabel(r'Number of Inner Nodes [N]', fontsize = fontsize)
+    ax.set_title('Spectral Radius of RHS FD Matrix vs Number of Inner Nodes')
+    ax.grid()
+
+    fig.show()
 
     return 
 
@@ -212,6 +245,9 @@ if __name__ == '__main__':
     ## [The initial condition function.]
     U0 = lambda x: 10*(x-1)*(4-x)**2 * np.exp(- x)
 
+    ## [Q2 Part b {Spectral Radius Study}]
+    Spectral_Radius_M(r2, r1, nu)
+
     ## [The time grid.]
     t =  np.arange(t1, t2, dt)
     Nt = len(t)
@@ -222,13 +258,13 @@ if __name__ == '__main__':
     dr = r[1] - r[0]
 
     ## [The numerical solution for U.]
-    Un = U_num(r, t, dr, dt, Nr, Nrp1, Nrp2, Nt, nu, U0)
+#    Un = U_num(r, t, dr, dt, Nr, Nrp1, Nrp2, Nt, nu, U0)
     
     ## [The meshgrdi for analytical and plotting.]
     rr, tt = np.meshgrid(r,t)
 
     ## [The analytical solution for U.]
-    Ua = analytical_sol.U_ana(rr, tt, Nk, r2, r1, U0, nu)
+#    Ua = analytical_sol.U_ana(rr, tt, Nk, r2, r1, U0, nu)
 
 
     
